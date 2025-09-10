@@ -51,9 +51,16 @@ func EchoSQLiDBVuln(c echo.Context) error {
 	id := c.QueryParam("id")
 	db, _ := sql.Open("sqlite3", ":memory:")
 	defer db.Close()
-	// vulnerable query concatenation
-	q := "SELECT * FROM users WHERE id = '" + id + "'"
-	_, _ = db.Query(q)
+	// safe query with prepared statement
+	stmt, err := db.Prepare("SELECT * FROM users WHERE id = ?")
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "error preparing statement")
+	}
+	defer stmt.Close()
+	_, err = stmt.Query(id)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "error executing query")
+	}
 	return c.String(http.StatusOK, "ok")
 }
 
